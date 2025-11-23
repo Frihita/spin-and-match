@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spin & Match - Festival Wheel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', 'Garamond', serif;
+            background: linear-gradient(135deg, #2c1810 0%, #4a2c1a 50%, #3d2415 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #f5e6d3;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, #d4af37 0%, #f9e076 50%, #d4af37 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 20px rgba(212, 175, 55, 0.3);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            color: #c9a868;
+            font-style: italic;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            flex: 1;
+            min-width: 150px;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(139, 69, 19, 0.2));
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(212, 175, 55, 0.4);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #c9a868;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #d4af37;
+            text-shadow: 0 2px 10px rgba(212, 175, 55, 0.5);
+        }
+
+        .stat-value.warning {
+            color: #ff6b6b;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .wheel-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .wheel-wrapper {
+            position: relative;
+            width: min(400px, 90vw);
+            height: min(400px, 90vw);
+            margin-bottom: 30px;
+        }
+
+        .pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 30px solid #d4af37;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+        }
+
+        .wheel-border {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #d4af37, #8b4513);
+            padding: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: relative;
+            transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+            background: #2c1810;
+        }
+
+        .wheel-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #d4af37, #c9a868);
+            border: 4px solid #2c1810;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.6);
+            z-index: 5;
+        }
+
+        .spin-btn {
+            padding: 18px 60px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2c1810;
+            background: linear-gradient(135deg, #d4af37 0%, #f9e076 50%, #d4af37 100%);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.4);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .spin-btn:hover:not(:disabled) {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 12px 35px rgba(212, 175, 55, 0.6);
+        }
+
+        .spin-btn:active:not(:disabled) {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .spin-btn:disabled {
+            background: linear-gradient(135deg, #666, #888);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .quiz-section {
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        .round-timer {
+            display: inline-block;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(139, 69, 19, 0.3));
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(212, 175, 55, 0.5);
+            border-radius: 20px;
+            padding: 15px 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .round-timer-label {
+            font-size: 0.85rem;
+            color: #c9a868;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .round-timer-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #d4af37;
+        }
+
+        .round-timer-value.warning {
+            color: #ff6b6b;
+        }
+
+        .quiz-card {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(139, 69, 19, 0.2));
+            backdrop-filter: blur(10px);
+            border: 3px solid rgba(212, 175, 55, 0.5);
+            border-radius: 30px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .quiz-card h2 {
+            font-size: 2.5rem;
+            color: #d4af37;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(212, 175, 55, 0.4);
+        }
+
+        .quiz-card p {
+            font-size: 1.2rem;
+            color: #c9a868;
+            margin-bottom: 30px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .option-btn {
+            padding: 20px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c1810;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(249, 224, 118, 0.3));
+            border: 2px solid rgba(212, 175, 55, 0.6);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .option-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.5);
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.5), rgba(249, 224, 118, 0.5));
+        }
+
+        .option-btn:disabled {
+            cursor: not-allowed;
+        }
+
+        .option-btn.correct {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            border-color: #27ae60;
+            color: white;
+        }
+
+        .option-btn.incorrect {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            border-color: #c0392b;
+            color: white;
+        }
+
+        .result-message {
+            margin-top: 25px;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .result-message.correct {
+            color: #2ecc71;
+        }
+
+        .result-message.incorrect {
+            color: #ff6b6b;
+        }
+
+        .game-over {
+            text-align: center;
+            padding: 60px 40px;
+        }
+
+        .game-over-card {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(139, 69, 19, 0.25));
+            backdrop-filter: blur(10px);
+            border: 3px solid rgba(212, 175, 55, 0.6);
+            border-radius: 30px;
+            padding: 50px;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.6);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .game-over-card h2 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #d4af37 0%, #f9e076 50%, #d4af37 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+
+        .game-over-card p {
+            font-size: 1.8rem;
+            color: #c9a868;
+            margin-bottom: 30px;
+        }
+
+        .final-score {
+            font-weight: 700;
+            color: #d4af37;
+            font-size: 2rem;
+        }
+
+        .restart-btn {
+            padding: 18px 50px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #2c1810;
+            background: linear-gradient(135deg, #d4af37 0%, #f9e076 50%, #d4af37 100%);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.4);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .restart-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 12px 35px rgba(212, 175, 55, 0.6);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5rem;
+            }
+
+            .stats-bar {
+                flex-direction: column;
+            }
+
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✨ Spin & Match ✨</h1>
+            <p>Festival Wheel Challenge</p>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-label">Score</div>
+                <div class="stat-value" id="score">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Time Left</div>
+                <div class="stat-value" id="timeLeft">60</div>
+            </div>
+        </div>
+
+        <div id="gameArea">
+            <div class="wheel-container">
+                <div class="wheel-wrapper">
+                    <div class="pointer"></div>
+                    <div class="wheel-border">
+                        <svg id="wheel" class="wheel" viewBox="0 0 200 200">
+                            <!-- Wheel segments will be generated here -->
+                        </svg>
+                        <div class="wheel-center"></div>
+                    </div>
+                </div>
+                <button class="spin-btn" id="spinBtn">SPIN</button>
+            </div>
+
+            <div id="quizSection" class="quiz-section" style="display: none;">
+                <div class="round-timer" id="roundTimerDisplay" style="display: none;">
+                    <div class="round-timer-label">Round Time</div>
+                    <div class="round-timer-value" id="roundTimer">20</div>
+                </div>
+
+                <div class="quiz-card">
+                    <h2 id="festivalName"></h2>
+                    <p>Which state celebrates this festival most popularly?</p>
+
+                    <div class="options-grid" id="optionsGrid">
+                        <!-- Options will be generated here -->
+                    </div>
+
+                    <div id="resultMessage" class="result-message" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="gameOverScreen" class="game-over" style="display: none;">
+            <div class="game-over-card">
+                <h2>⏱️ Time's Up! ⏱️</h2>
+                <p>Final Score: <span class="final-score" id="finalScore">0</span></p>
+                <button class="restart-btn" onclick="restartGame()">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const FESTIVALS = [
+            { name: 'Bihu', primaryState: 'Assam', neighboringStates: ['Meghalaya', 'Arunachal Pradesh'] },
+            { name: 'Pongal', primaryState: 'Tamil Nadu', neighboringStates: ['Karnataka', 'Kerala'] },
+            { name: 'Onam', primaryState: 'Kerala', neighboringStates: ['Tamil Nadu', 'Karnataka'] },
+            { name: 'Durga Puja', primaryState: 'West Bengal', neighboringStates: ['Odisha', 'Jharkhand'] },
+            { name: 'Lohri', primaryState: 'Punjab', neighboringStates: ['Haryana', 'Himachal Pradesh'] },
+            { name: 'Holi', primaryState: 'Uttar Pradesh', neighboringStates: ['Bihar', 'Madhya Pradesh'] },
+            { name: 'Ganesh Chaturthi', primaryState: 'Maharashtra', neighboringStates: ['Goa', 'Karnataka'] },
+            { name: 'Ugadi', primaryState: 'Karnataka', neighboringStates: ['Andhra Pradesh', 'Telangana'] },
+            { name: 'Baisakhi', primaryState: 'Punjab', neighboringStates: ['Haryana', 'Himachal Pradesh'] },
+            { name: 'Chhath Puja', primaryState: 'Bihar', neighboringStates: ['Jharkhand', 'Uttar Pradesh'] }
+        ];
+
+        const COLORS = [
+            '#8b4513', '#a0522d', '#cd853f', '#daa520', '#b8860b',
+            '#8b7355', '#a0826d', '#cd9575', '#daa06a', '#b88a57'
+        ];
+
+        let score = 0;
+        let timeLeft = 60;
+        let roundTimer = 20;
+        let currentFestival = null;
+        let isSpinning = false;
+        let gameOver = false;
+        let showRoundTimer = false;
+        let rotation = 0;
+        let gameTimer = null;
+        let roundTimerInterval = null;
+
+        // Initialize wheel
+        function initWheel() {
+            const wheel = document.getElementById('wheel');
+            const segmentAngle = 360 / FESTIVALS.length;
+
+            FESTIVALS.forEach((festival, index) => {
+                const startAngle = (index * segmentAngle - 90) * (Math.PI / 180);
+                const endAngle = ((index + 1) * segmentAngle - 90) * (Math.PI / 180);
+
+                const x1 = 100 + 95 * Math.cos(startAngle);
+                const y1 = 100 + 95 * Math.sin(startAngle);
+                const x2 = 100 + 95 * Math.cos(endAngle);
+                const y2 = 100 + 95 * Math.sin(endAngle);
+
+                const largeArc = segmentAngle > 180 ? 1 : 0;
+                const pathData = `M 100 100 L ${x1} ${y1} A 95 95 0 ${largeArc} 1 ${x2} ${y2} Z`;
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', pathData);
+                path.setAttribute('fill', COLORS[index % COLORS.length]);
+                path.setAttribute('stroke', '#2c1810');
+                path.setAttribute('stroke-width', '0.8');
+                wheel.appendChild(path);
+
+                // Text
+                const textAngle = (index * segmentAngle + segmentAngle / 2 - 90) * (Math.PI / 180);
+                const textX = 100 + 65 * Math.cos(textAngle);
+                const textY = 100 + 65 * Math.sin(textAngle);
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', textX);
+                text.setAttribute('y', textY);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('dominant-baseline', 'middle');
+                text.setAttribute('fill', '#f5e6d3');
+                text.setAttribute('font-size', '7');
+                text.setAttribute('font-weight', '700');
+                text.setAttribute('transform', `rotate(${index * segmentAngle + segmentAngle / 2}, ${textX}, ${textY})`);
+                text.textContent = festival.name;
+                wheel.appendChild(text);
+            });
+        }
+
+        // Start game timer
+        function startGameTimer() {
+            gameTimer = setInterval(() => {
+                timeLeft--;
+                updateDisplay();
+
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        // Start round timer
+        function startRoundTimer() {
+            roundTimer = 20;
+            showRoundTimer = true;
+            document.getElementById('roundTimerDisplay').style.display = 'inline-block';
+
+            roundTimerInterval = setInterval(() => {
+                roundTimer--;
+                updateRoundTimerDisplay();
+
+                if (roundTimer <= 0) {
+                    handleWrongAnswer();
+                }
+            }, 1000);
+        }
+
+        // Stop round timer
+        function stopRoundTimer() {
+            if (roundTimerInterval) {
+                clearInterval(roundTimerInterval);
+                roundTimerInterval = null;
+            }
+            showRoundTimer = false;
+            document.getElementById('roundTimerDisplay').style.display = 'none';
+        }
+
+        // Update displays
+        function updateDisplay() {
+            document.getElementById('score').textContent = score;
+            const timeLeftEl = document.getElementById('timeLeft');
+            timeLeftEl.textContent = timeLeft + 's';
+            timeLeftEl.classList.toggle('warning', timeLeft <= 10);
+        }
+
+        function updateRoundTimerDisplay() {
+            const roundTimerEl = document.getElementById('roundTimer');
+            roundTimerEl.textContent = roundTimer + 's';
+            roundTimerEl.classList.toggle('warning', roundTimer <= 5);
+        }
+
+        // Spin wheel
+        function spinWheel() {
+            if (isSpinning || currentFestival || gameOver) return;
+
+            isSpinning = true;
+            currentFestival = null;
+            document.getElementById('spinBtn').disabled = true;
+            document.getElementById('quizSection').style.display = 'none';
+
+            const extraRotations = 3 + Math.random() * 2;
+            const randomAngle = Math.random() * 360;
+            rotation += extraRotations * 360 + randomAngle;
+
+            const wheel = document.getElementById('wheel');
+            wheel.style.transform = `rotate(${rotation}deg)`;
+
+            setTimeout(() => {
+                const segmentAngle = 360 / FESTIVALS.length;
+                const normalizedAngle = (360 - (rotation % 360)) % 360;
+                const selectedIndex = Math.floor(normalizedAngle / segmentAngle) % FESTIVALS.length;
+
+                currentFestival = FESTIVALS[selectedIndex];
+                isSpinning = false;
+                showQuiz();
+                startRoundTimer();
+            }, 4000);
+        }
+
+        // Show quiz
+        function showQuiz() {
+            if (!currentFestival) return;
+
+            document.getElementById('festivalName').textContent = currentFestival.name;
+            document.getElementById('quizSection').style.display = 'block';
+
+            // Generate options
+            const correctState = currentFestival.primaryState;
+            const allStates = FESTIVALS.map(f => f.primaryState);
+
+            let wrongStates = [];
+
+            if (score < 3) {
+                wrongStates = allStates
+                    .filter(state => state !== correctState)
+                    .sort(() => Math.random() - 0.5)
+                    .slice(0, 2);
+            } else if (score < 6) {
+                const neighboringStates = currentFestival.neighboringStates || [];
+                if (neighboringStates.length >= 2) {
+                    wrongStates = neighboringStates.slice(0, 2);
+                } else {
+                    wrongStates = [
+                        ...neighboringStates,
+                        ...allStates.filter(state => state !== correctState && !neighboringStates.includes(state))
+                            .sort(() => Math.random() - 0.5)
+                    ].slice(0, 2);
+                }
+            } else {
+                const neighboringStates = currentFestival.neighboringStates || [];
+                wrongStates = [
+                    ...neighboringStates,
+                    ...allStates.filter(state => state !== correctState && !neighboringStates.includes(state))
+                        .sort(() => Math.random() - 0.5)
+                ].slice(0, 2);
+            }
+
+            const options = [correctState, ...wrongStates].sort(() => Math.random() - 0.5);
+
+            const optionsGrid = document.getElementById('optionsGrid');
+            optionsGrid.innerHTML = '';
+
+            options.forEach(state => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = state;
+                btn.onclick = () => handleAnswer(state);
+                optionsGrid.appendChild(btn);
+            });
+
+            document.getElementById('resultMessage').style.display = 'none';
+        }
+
+        // Handle answer
+        function handleAnswer(selectedState) {
+            if (!currentFestival) return;
+
+            stopRoundTimer();
+
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                if (btn.textContent === currentFestival.primaryState) {
+                    btn.classList.add('correct');
+                } else if (btn.textContent === selectedState) {
+                    btn.classList.add('incorrect');
+                }
+            });
+
+            const isCorrect = selectedState === currentFestival.primaryState;
+            const resultMsg = document.getElementById('resultMessage');
+            resultMsg.style.display = 'block';
+
+            if (isCorrect) {
+                resultMsg.textContent = '🎉 Correct!';
+                resultMsg.className = 'result-message correct';
+                setTimeout(() => {
+                    score++;
+                    updateDisplay();
+                    resetRound();
+                }, 1500);
+            } else {
+                resultMsg.textContent = `❌ Wrong! It's ${currentFestival.primaryState}`;
+                resultMsg.className = 'result-message incorrect';
+                setTimeout(() => {
+                    resetRound();
+                }, 1500);
+            }
+        }
+
+        // Handle wrong answer
+        function handleWrongAnswer() {
+            if (!currentFestival) return;
+
+            stopRoundTimer();
+
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                if (btn.textContent === currentFestival.primaryState) {
+                    btn.classList.add('correct');
+                }
+            });
+
+            const resultMsg = document.getElementById('resultMessage');
+            resultMsg.style.display = 'block';
+            resultMsg.textContent = `⏰ Time's up! It's ${currentFestival.primaryState}`;
+            resultMsg.className = 'result-message incorrect';
+
+            setTimeout(() => {
+                resetRound();
+            }, 1500);
+        }
+
+        // Reset round
+        function resetRound() {
+            currentFestival = null;
+            document.getElementById('spinBtn').disabled = false;
+            document.getElementById('quizSection').style.display = 'none';
+        }
+
+        // End game
+        function endGame() {
+            gameOver = true;
+            clearInterval(gameTimer);
+            stopRoundTimer();
+
+            document.getElementById('gameArea').style.display = 'none';
+            document.getElementById('gameOverScreen').style.display = 'block';
+            document.getElementById('finalScore').textContent = score;
+        }
+
+        // Restart game
+        function restartGame() {
+            score = 0;
+            timeLeft = 60;
+            roundTimer = 20;
+            currentFestival = null;
+            isSpinning = false;
+            gameOver = false;
+            showRoundTimer = false;
+
+            updateDisplay();
+
+            document.getElementById('gameArea').style.display = 'block';
+            document.getElementById('gameOverScreen').style.display = 'none';
+            document.getElementById('spinBtn').disabled = false;
+            document.getElementById('quizSection').style.display = 'none';
+
+            startGameTimer();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initWheel();
+            updateDisplay();
+            startGameTimer();
+
+            document.getElementById('spinBtn').addEventListener('click', spinWheel);
+        });
+    </script>
+</body>
+</html>
